@@ -1,0 +1,5 @@
+# project specific
+target/
+
+# IDE specific
+.idea/
