@@ -8,6 +8,9 @@ lazy val commonSettings = Seq(
 lazy val backlog4s = (project in file("backlog4s"))
   .settings(commonSettings)
 
+lazy val commandParser = (project in file("command-parser"))
+    .settings(commonSettings)
+
 lazy val backlogUserMigration = (project in file("."))
   .settings(commonSettings)
-  .dependsOn(backlog4s)
+  .dependsOn(backlog4s, commandParser)
