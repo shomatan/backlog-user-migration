@@ -1,6 +1,6 @@
 package me.shoma.backlog.user.migration.command
 
-case class CommandLineArgs(
+case class Config(
   srcBacklogUrl: String = "",
   srcBacklogKey: String = "",
   dstBacklogUrl: String = "",
@@ -9,7 +9,7 @@ case class CommandLineArgs(
 
 trait CommandLineArgsParser {
 
-  private val parser = new scopt.OptionParser[CommandLineArgs]("backlog-user-migration.jar") {
+  private val parser = new scopt.OptionParser[Config]("backlog-user-migration.jar") {
 
     head("Backlog user migration", "0.0.1")
 
@@ -29,7 +29,10 @@ trait CommandLineArgsParser {
 
   }
 
-  def parse(args: Array[String]): Option[CommandLineArgs] =
-    parser.parse(args, CommandLineArgs())
+  def parse(args: Array[String]): Config =
+    parser.parse(args, Config()) match {
+      case Some(config) => config
+      case None => sys.exit(1)
+    }
 
 }
