@@ -4,10 +4,12 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import cats.implicits._
 import backlog4s.apis.UserApi
-import backlog4s.datas.AccessKey
+import backlog4s.datas.{AccessKey, AddUserForm}
+import backlog4s.dsl.syntax._
 import backlog4s.interpreters.AkkaHttpInterpret
 import me.shoma.backlog.user.migration.command.CommandLineArgsParser
 
+import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 object Main extends App with CommandLineArgsParser {
@@ -26,16 +28,30 @@ object Main extends App with CommandLineArgsParser {
   )
 
   val prg = for {
-    users <- UserApi.all()
+    users <- UserApi.all(limit = 1000).orFail
   } yield users
 
-  prg.foldMap(srcInterpreter).onComplete { result =>
-    result match {
-      case Success(data) => data.foreach(println)
-      case Failure(ex) => ex.printStackTrace()
+  val result = for {
+    users <- prg.foldMap(srcInterpreter)
+    createdUserPrgs = users.map { user =>
+      val form = AddUserForm(
+        userId = user.userId.getOrElse(""),
+        password = "aaaaaaaa",
+        name = user.name,
+        mailAddress = user.mailAddress,
+        roleType = user.roleType
+      )
+      UserApi.create(form).orFail
     }
-    system.terminate()
+    createdUsers <- Future.sequence(
+      createdUserPrgs.map(_.foldMap(dstInterpreter))
+    )
+  } yield createdUsers
+
+  result.onComplete {
+    case Success(createdUsers) =>
+      println(createdUsers)
+    case Failure(ex) =>
+      println(ex.printStackTrace())
   }
-
-
 }
