@@ -28,8 +28,11 @@ object Main extends App with CommandLineArgsParser {
   )
 
   val prg = for {
+    // Q1. How to get large number of users with FP?
     users <- UserApi.all(limit = 1000).orFail
   } yield users
+
+  // Q2. Good solution to output progress.
 
   val result = for {
     users <- prg.foldMap(srcInterpreter)
