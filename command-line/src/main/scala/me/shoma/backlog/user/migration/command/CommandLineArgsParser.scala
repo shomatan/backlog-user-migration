@@ -1,5 +1,7 @@
 package me.shoma.backlog.user.migration.command
 
+import cats.effect.IO
+
 case class Config(
   srcBacklogUrl: String = "",
   srcBacklogKey: String = "",
@@ -7,8 +9,11 @@ case class Config(
   dstBacklogKey: String = ""
 )
 
-trait CommandLineArgsParser {
+trait CmdLineParser {
+  def parse(args: Seq[String]): IO[Config]
+}
 
+object OptionParser extends CmdLineParser {
   private val parser = new scopt.OptionParser[Config]("backlog-user-migration.jar") {
 
     head("Backlog user migration", "0.0.1")
@@ -29,10 +34,19 @@ trait CommandLineArgsParser {
 
   }
 
-  def parse(args: Array[String]): Config =
-    parser.parse(args, Config()) match {
-      case Some(config) => config
-      case None => sys.exit(1)
+  override def parse(args: Seq[String]): IO[Config] =
+    IO {
+      parser.parse(args, Config()) match {
+        case Some(config) => config
+        case None => throw new IllegalArgumentException("Invalid config")
+      }
     }
+
+}
+
+object CommandLineArgsParser {
+
+  def parse(parser: CmdLineParser, args: Seq[String]): IO[Config] =
+    parser.parse(args)
 
 }
