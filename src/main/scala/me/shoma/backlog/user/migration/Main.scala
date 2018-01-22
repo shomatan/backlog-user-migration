@@ -14,6 +14,7 @@ import scala.util.{Failure, Success}
 
 object Main extends App with CommandLineArgsParser {
 
+  // Q1. This is not a pure function. How to improve?
   val config = parse(args) // if validation failed, sys.exit(1)
 
   implicit val system = ActorSystem("backlog-user-migration")
@@ -28,11 +29,11 @@ object Main extends App with CommandLineArgsParser {
   )
 
   val prg = for {
-    // Q1. How to get large number of users with FP?
+    // Q2. How to get large number of users with FP?
     users <- UserApi.all(limit = 1000).orFail
   } yield users
 
-  // Q2. Good solution to output progress.
+  // Q3. Good solution to output progress.
 
   val result = for {
     users <- prg.foldMap(srcInterpreter)
@@ -58,5 +59,5 @@ object Main extends App with CommandLineArgsParser {
       println(ex.printStackTrace())
   }
 
-  // Q3. How to shutdown akka safely?
+  // Q4. How to shutdown akka safely?
 }
