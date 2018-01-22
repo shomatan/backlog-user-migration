@@ -57,4 +57,6 @@ object Main extends App with CommandLineArgsParser {
     case Failure(ex) =>
       println(ex.printStackTrace())
   }
+
+  // Q3. How to shutdown akka safely?
 }
