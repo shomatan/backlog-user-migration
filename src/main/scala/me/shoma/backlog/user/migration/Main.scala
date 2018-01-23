@@ -3,7 +3,7 @@ package me.shoma.backlog.user.migration
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import cats.implicits._
-import backlog4s.apis.UserApi
+import backlog4s.apis.{AllApi, UserApi}
 import backlog4s.datas.{AccessKey, AddUserForm}
 import backlog4s.dsl.syntax._
 import backlog4s.interpreters.AkkaHttpInterpret
@@ -20,27 +20,20 @@ object Main extends App {
   }
 
   def start(config: Config): Unit = {
+
     implicit val system = ActorSystem("backlog-user-migration")
     implicit val mat = ActorMaterializer()
     implicit val exc = system.dispatcher
 
-    val srcInterpreter = new AkkaHttpInterpret(
-      s"${config.srcBacklogUrl}/api/v2/", AccessKey(config.srcBacklogKey)
-    )
-    val dstInterpreter = new AkkaHttpInterpret(
-      s"${config.dstBacklogUrl}/api/v2/", AccessKey(config.dstBacklogKey)
-    )
-
-    val prg = for {
-      // Q2. How to get large number of users with FP?
-      users <- UserApi.all(limit = 100).orFail
-    } yield users
+    val httpInterpret = new AkkaHttpInterpret
+    val srcApi = AllApi.accessKey(s"${config.srcBacklogUrl}/api/v2/", config.srcBacklogKey)
+    val dstApi = AllApi.accessKey(s"${config.dstBacklogUrl}/api/v2/", config.dstBacklogKey)
 
     // Q3. Good solution to output progress.
 
     val result = for {
-      users <- prg.foldMap(srcInterpreter)
-      createdUserPrgs = users.map { user =>
+      users <- srcApi.userApi.all(limit = 1000).orFail // Q2. How to get large number of users with FP?
+      createdUsers <- users.map { user =>
         val form = AddUserForm(
           userId = user.userId.getOrElse(""),
           password = "aaaaaaaa",
@@ -48,18 +41,16 @@ object Main extends App {
           mailAddress = user.mailAddress,
           roleType = user.roleType
         )
-        UserApi.create(form).orFail
+        dstApi.userApi.create(form).orFail
       }
-      createdUsers <- Future.sequence(
-        createdUserPrgs.map(_.foldMap(dstInterpreter))
-      )
     } yield createdUsers
 
-    result.onComplete {
-      case Success(createdUsers) =>
-        println(createdUsers)
-      case Failure(ex) =>
-        println(ex.printStackTrace())
+    result.foldMap(httpInterpret).onComplete { result =>
+      result match {
+        case Success(data) => println(data)
+        case Failure(ex) => ex.printStackTrace()
+      }
+      system.terminate()
     }
   }
 
