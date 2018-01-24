@@ -3,8 +3,8 @@ package me.shoma.backlog.user.migration
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import cats.implicits._
-import backlog4s.apis.{AllApi, UserApi}
-import backlog4s.datas.{AccessKey, AddUserForm}
+import backlog4s.apis.AllApi
+import backlog4s.datas.AddUserForm
 import backlog4s.dsl.syntax._
 import backlog4s.interpreters.AkkaHttpInterpret
 import me.shoma.backlog.user.migration.command.{CommandLineArgsParser, Config, OptionParser}
@@ -17,7 +17,7 @@ object Main extends App {
   CommandLineArgsParser.parse(OptionParser, args).attempt.map {
     case Right(config) => start(config)
     case Left(_)       => sys.exit(1)
-  }
+  }.unsafeRunSync()
 
   def start(config: Config): Unit = {
 
