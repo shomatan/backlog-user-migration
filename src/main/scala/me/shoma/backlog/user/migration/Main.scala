@@ -42,7 +42,7 @@ object Main extends App {
           roleType = user.roleType
         )
         dstApi.userApi.create(form).orFail
-      }
+      }.sequence
     } yield createdUsers
 
     result.foldMap(httpInterpret).onComplete { result =>
