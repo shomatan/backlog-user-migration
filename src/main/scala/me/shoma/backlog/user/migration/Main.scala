@@ -9,7 +9,6 @@ import backlog4s.dsl.syntax._
 import backlog4s.interpreters.AkkaHttpInterpret
 import me.shoma.backlog.user.migration.command.{CommandLineArgsParser, Config, OptionParser}
 
-import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 object Main extends App {
@@ -53,8 +52,5 @@ object Main extends App {
       system.terminate()
     }
   }
-
-
-
-  // Q4. How to shutdown akka safely?
+  
 }
