@@ -35,6 +35,9 @@ object Main extends App {
       createdUsers <- users.map { user =>
         val form = AddUserForm(
           userId = user.userId.getOrElse(""),
+          // Q4. I'm considering to encrypt the password.
+          // Backlog API can be accepted only the password length between 8 and 20.
+          // bcrypt generates a password of 60 characters
           password = "aaaaaaaa",
           name = user.name,
           mailAddress = user.mailAddress,
