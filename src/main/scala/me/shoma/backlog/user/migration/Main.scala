@@ -11,6 +11,7 @@ import backlog4s.dsl.syntax._
 import backlog4s.interpreters.AkkaHttpInterpret
 import me.shoma.backlog.user.migration.command.{CommandLineArgsParser, Config, OptionParser}
 
+import scala.annotation.tailrec
 import scala.util.{Failure, Success}
 
 object Main extends App {
@@ -22,33 +23,21 @@ object Main extends App {
     case Left(_)       => sys.exit(1)
   }.unsafeRunSync()
 
-  def fetchUsers(api: UserApi, offset: Int, limit: Int): ApiPrg[Seq[User]] = {
-    def go(acc: Seq[User], current: Int): ApiPrg[Seq[User]] = {
-      api.all(current).orFail.flatMap { users =>
-        if (users.nonEmpty)
-          go(acc ++ users, current + 100)
-        else
-          pure(acc)
-      }
-    }
-    go(Seq(), 0)
-  }
-
   type UserStreamF[A] = (Seq[User], Int, Int) => ApiPrg[A]
 
   def streamUser[A](api: UserApi, offset: Int, limit: Int)(f: UserStreamF[A]): ApiPrg[A] = {
+    // @tailrec Q5. tailrec is fail
     def go(current: Int): ApiPrg[A] = {
       api.all(current, limit).orFail.flatMap { users =>
-        if (users.nonEmpty)
-          f(users, current, limit).flatMap(_ => go(current + limit))
-        else
+        if (users.isEmpty)
           f(users, current, limit)
+        else
+          f(users, current, limit).flatMap(_ => go(current + limit))
       }
     }
     go(0)
   }
-
-
+  
   def start(config: Config): Unit = {
 
     implicit val system = ActorSystem("backlog-user-migration")
